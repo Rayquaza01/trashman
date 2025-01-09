@@ -2,6 +2,13 @@
 -- Trash v1.0
 -- by Arnaught
 
+--- @class __FileMetadata
+--- @field TrashInfo? __TrashInfo
+
+--- @class __TrashInfo
+--- @field Path string
+--- @field DeletionDate string
+
 local TRASH_FOLDER = "/appdata/trash"
 
 if not fstat(TRASH_FOLDER) then
