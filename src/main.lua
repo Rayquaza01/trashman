@@ -234,7 +234,7 @@ function _init()
         window(16, 16)
     else
         window({
-            width = 256, height = 64,
+            width = 256, height = 128,
             title = "Trash Manager"
         })
 
