@@ -125,7 +125,7 @@ function restore_all_trash()
 	end
 end
 
---- Permanantly delete a file from trash
+--- Permanently delete a file from trash
 --- Should be a filename inside the trash folder
 --- @param f string
 function delete_trash(f)
@@ -137,9 +137,9 @@ function delete_trash(f)
 		rm(info_file)
 
 		if is_cli then
-			print(string.format("Permanantly deleted \fe%s\f7", f))
+			print(string.format("Permanently deleted \fe%s\f7", f))
 		else
-			notify(string.format("Permanantly deleted %s", f))
+			notify(string.format("Permanently deleted %s", f))
 		end
 	end
 end
@@ -154,13 +154,13 @@ function delete_multiple_trash(files)
 	end
 
 	if is_cli then
-		print(string.format("Permanantly deleted \fe%d\f7 files", c))
+		print(string.format("Permanently deleted \fe%d\f7 files", c))
 	else
-		notify(string.format("Permanantly deleted %d files", c))
+		notify(string.format("Permanently deleted %d files", c))
 	end
 end
 
---- Permanantly delete all files from trash
+--- Permanently delete all files from trash
 function empty_trash()
 	local trash_files = ls(TRASH_FILES)
 	for f in all(trash_files) do
@@ -168,9 +168,9 @@ function empty_trash()
 	end
 
 	if is_cli then
-		print(string.format("Permanantly deleted \fe%d\f7 items", #trash_files))
+		print(string.format("Permanently deleted \fe%d\f7 items", #trash_files))
 	else
-		notify(string.format("Permanantly deleted %d items", #trash_files))
+		notify(string.format("Permanently deleted %d items", #trash_files))
 	end
 end
 
