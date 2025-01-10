@@ -189,7 +189,7 @@ function _init()
     if #flag_arguments > 0 then
         is_cli = true
 
-        if search(flag_arguments, "--list") > -1 or search(flag_arguments, "--search") > -1 then
+        if search(flag_arguments, "--list") > -1 then
             print_trash()
             exit(0)
         elseif search(flag_arguments, "--empty") > -1 then
