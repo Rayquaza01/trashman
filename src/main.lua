@@ -2,6 +2,11 @@
 -- Trash v1.0
 -- by Arnaught
 
+include("args.lua")
+include("array.lua")
+include("filesizes.lua")
+include("unique_filename.lua")
+
 --- @class __FileMetadata
 --- @field TrashInfo? __TrashInfo
 
@@ -9,8 +14,9 @@
 --- @field Path string
 --- @field DeletionDate string
 
-cd(env().path)
-local argv = env().argv or {}
+local width
+local height
+local rows
 
 local is_cli = false
 local is_tooltray = false
@@ -22,97 +28,38 @@ if not fstat(TRASH_FOLDER) then
 	mkdir(TRASH_FOLDER)
 end
 
+local total_size = 0
 local trash = {}
 
 function update_trash_dir()
     store(TRASH_FILE, "")
 end
 
---- Parses arguments to find flag arguments and file arguments
---- Flag arguments start with --
---- Any arguments after the literal argument "--" will *always* be interpreted as a file, regardless of whether it starts with --
---- Returns array of flag arguments and array of file arguments
---- @return string[], string[]
-function parse_arguments()
-    local file_arguments = {}
-    local flag_arguments = {}
-
-    local is_always_file = false
-
-    for arg in all(argv) do
-        if not is_always_file then
-            if arg == "--" then
-                is_always_file = true
-            elseif arg:find("^%-%-") then
-                add(flag_arguments, arg)
-            else
-                add(file_arguments, arg)
-            end
-        else
-            add(file_arguments, arg)
-        end
-    end
-
-    return flag_arguments, file_arguments
-end
-
---- Searches for a term in a table
---- If term is not found, return -1
---- @param tbl table
---- @param term any
---- @return integer
-function search(tbl, term)
-    for i, item in ipairs(tbl) do
-        if item == term then
-            return i
-        end
-    end
-
-    return -1
-end
-
-function amap(tbl, cb)
-    local res = {}
-
-    for i, item in ipairs(tbl) do
-        add(res, cb(item, i, tbl))
-    end
-
-    return res
-end
-
---- Gets a unique filename to put in the destination folder
---- If a file of that name already exists, add a number to the end to avoid collisions
---- @param dest_folder string
---- @param file string
---- @return string
-function unique_filename(dest_folder, file)
-	local c = 1
-	local basename = file:basename()
-	local dest = string.format("%s/%s", dest_folder, basename)
-	local ext = file:ext()
-	local name = basename:sub(1, #basename - #ext - 1)
-
-	while fstat(dest) do
-		dest = string.format("%s/%s_%d.%s", dest_folder, name, c, ext)
-		c += 1
-	end
-
-	return dest
-end
-
 --- Lists all elements in the trash folder and caches their metadata in a global table to be displayed
 function list_trash()
+    total_size = 0
 	trash = {}
+
 	for f in all(ls(TRASH_FOLDER)) do
-		local metadata = fetch_metadata(TRASH_FOLDER .. "/" .. f).TrashInfo
-		if metadata ~= nil then
-			add(trash, {
-				name = f,
-				Path = metadata.Path,
-				DeletionDate = metadata.DeletionDate
-			})
-		end
+        local file = TRASH_FOLDER .. "/" .. f
+
+        local ftype, size = fstat(file)
+
+        if ftype then
+            --- @cast size integer
+            total_size += size
+
+            local metadata = fetch_metadata(file).TrashInfo
+            if metadata ~= nil then
+                add(trash, {
+                    name = f,
+                    Path = metadata.Path,
+                    DeletionDate = metadata.DeletionDate,
+                    Type = ftype,
+                    Size = size
+                })
+            end
+        end
 	end
 end
 
@@ -231,9 +178,11 @@ function print_trash()
 end
 
 function _init()
-	list_trash()
+    cd(env().path)
+    local argv = env().argv or {}
 
-    local flag_arguments, file_arguments = parse_arguments()
+	list_trash()
+    local flag_arguments, file_arguments = parse_arguments(argv)
 
     if #flag_arguments > 0 then
         is_cli = true
@@ -287,6 +236,10 @@ function _init()
             title = "Trash Manager"
         })
 
+        width = get_display():width()
+        height = get_display():height()
+        rows = (height / 16) - 1
+
         menuitem({
             id = 1,
             label = "Empty",
@@ -315,8 +268,14 @@ function _init()
         update_trash_dir()
 	end)
 
-    on_event("modified:" .. TRASH_FILE, function ()
+    on_event("modified:" .. TRASH_FILE, function()
         list_trash()
+    end)
+
+    on_event("resize", function()
+        width = get_display():width()
+        height = get_display():height()
+        rows = flr(height / 16)
     end)
 
 	mx, my, mb = 0, 0, 0
@@ -364,12 +323,15 @@ function _draw()
     else
         cls()
 
+        rectfill(0, height - 9, width, height, 20)
+        print(string.format("\fc%d\f7 items, \fe%s\f7, TOP", #trash, sizeToReadable(total_size)), 0, height - 8, 7)
+
         if row >= 0 and row < #trash then
             rectfill(0, row * 8, get_display():width(), (row + 1) * 8, 16)
         end
 
         for i, t in ipairs(trash) do
-            print(string.format("\fe%s\f7 (\fc%s\f7) \f8%s\f7", t.name, t.Path, t.DeletionDate), 0, (i - 1) * 9)
+            print(string.format("\fc%s\f7 \fe%s\f7 \f8%s\f7", t.Path, sizeToReadable(t.Size), t.DeletionDate), 0, (i - 1) * 9)
         end
     end
 end
