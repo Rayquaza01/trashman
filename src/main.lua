@@ -19,23 +19,33 @@ local width
 local height
 local rows
 
-offset = 0
+local offset = 0
 
 local is_cli = false
 local is_tooltray = false
 
 local TRASH_FOLDER = "/appdata/trash"
-local TRASH_FILE = TRASH_FOLDER .. "/.trash"
+local TRASH_FILES = TRASH_FOLDER .. "/files"
+local TRASH_INFO = TRASH_FOLDER .. "/info"
+local TRASH_UPDATE_FILE = TRASH_FOLDER .. "/.trash"
 
 if not fstat(TRASH_FOLDER) then
 	mkdir(TRASH_FOLDER)
+end
+
+if not fstat(TRASH_FILES) then
+	mkdir(TRASH_FILES)
+end
+
+if not fstat(TRASH_INFO) then
+	mkdir(TRASH_INFO)
 end
 
 local total_size = 0
 local trash = {}
 
 function update_trash_dir()
-	store(TRASH_FILE, "")
+	store(TRASH_UPDATE_FILE, "")
 end
 
 --- Lists all elements in the trash folder and caches their metadata in a global table to be displayed
@@ -43,8 +53,9 @@ function list_trash()
 	total_size = 0
 	trash = {}
 
-	for f in all(ls(TRASH_FOLDER)) do
-		local file = TRASH_FOLDER .. "/" .. f
+	for f in all(ls(TRASH_FILES)) do
+		local file = TRASH_FILES .. "/" .. f
+		local info_file = string.format("%s/%s.trashinfo", TRASH_INFO, file:basename())
 
 		local ftype, size = fstat(file)
 
@@ -52,16 +63,30 @@ function list_trash()
 			--- @cast size integer
 			total_size += size
 
-			local metadata = fetch_metadata(file).TrashInfo
-			if metadata ~= nil then
-				add(trash, {
-					name = f,
-					Path = metadata.Path,
-					DeletionDate = metadata.DeletionDate,
-					Type = ftype,
-					Size = size
-				})
+			local Path, DeletionDate, OK
+			if fstat(info_file) then
+				OK = true
+				local metadata = fetch(info_file)
+				Path = metadata.TrashInfo.Path
+				DeletionDate = metadata.TrashInfo.DeletionDate
+			else
+				OK = false
+				local metadata = fetch_metadata(file)
+				Path = "/" .. f
+				DeletionDate = metadata.modified
+
+				printh("Path: " .. Path)
+				printh("Deleted: " .. DeletionDate)
 			end
+
+			add(trash, {
+				Name = f,
+				Path = Path,
+				DeletionDate = DeletionDate,
+				Type = ftype,
+				Size = size,
+				OK = OK
+			})
 		end
 	end
 end
@@ -70,29 +95,35 @@ end
 --- Should be a filename inside the trash folder
 --- @param f string
 function restore_trash(f)
-	local file = TRASH_FOLDER .. "/" .. f
-	local path = fetch_metadata(file).TrashInfo.Path
+	local file = TRASH_FILES .. "/" .. f
+	local info_file = string.format("%s/%s.trashinfo", TRASH_INFO, file:basename())
 
-	-- If a file exists in the location we are restoring to
-	-- then the restored file will overwrite whatever is currently there
-	-- to avoid this, we can create a unique filename for the destination
-	path = unique_filename(path:dirname(), path)
+	if fstat(file) then
+		local path = fstat(info_file) and
+			fetch(info_file).TrashInfo.Path or
+			"/" .. f
 
-	-- Can't remove metadata item, so just blank it
-	-- see /system/lib/fs.lua line 374
-	store_metadata(file, { TrashInfo = {} })
-	mv(file, path)
+		printh("Restore Path: ".. path)
 
-	if is_cli then
-		print(string.format("Restored \fe%s\f7 to \fe%s\f7", f, path))
-	else
-		notify(string.format("Restored %s to %s", f, path))
+		-- If a file exists in the location we are restoring to
+		-- then the restored file will overwrite whatever is currently there
+		-- to avoid this, we can create a unique filename for the destination
+		path = unique_filename(path:dirname(), path)
+
+		rm(info_file)
+		mv(file, path)
+
+		if is_cli then
+			print(string.format("Restored \fe%s\f7 to \fe%s\f7", f, path))
+		else
+			notify(string.format("Restored %s to %s", f, path))
+		end
 	end
 end
 
 --- Restore all files from trash
 function restore_all_trash()
-	local trash_files = ls(TRASH_FOLDER)
+	local trash_files = ls(TRASH_FILES)
 	for f in all(trash_files) do
 		restore_trash(f)
 	end
@@ -114,8 +145,10 @@ end
 
 --- Permanantly delete all files from trash
 function empty_trash()
-	local trash_files = ls(TRASH_FOLDER)
+	local trash_files = ls(TRASH_FILES)
 	for f in all(trash_files) do
+		local info_file = string.format("%s/%s.trashinfo", TRASH_INFO, f:basename())
+		rm(info_file)
 		rm(TRASH_FOLDER .. "/" .. f)
 	end
 
@@ -131,7 +164,8 @@ end
 --- and move the file to the trash folder
 --- @param file string
 function put_trash(file)
-	local dest = unique_filename(TRASH_FOLDER, file)
+	local dest = unique_filename(TRASH_FILES, file)
+	local info_file = string.format("%s/%s.trashinfo", TRASH_INFO, dest:basename())
 
 	local metadata = {
 		TrashInfo = {
@@ -140,7 +174,7 @@ function put_trash(file)
 		}
 	}
 
-	store_metadata(file, metadata)
+	store(info_file, metadata)
 	mv(file, dest)
 
 	if is_cli then
@@ -175,7 +209,11 @@ end
 function print_trash()
 	if #trash > 0 then
 		for t in all(trash) do
-			print(string.format("\fc%s\f7 (\fe%s\f7) \fu%s\f7 \f8%s\f7", t.Path, t.name, sizeToReadable(t.Size), toLocalTime(t.DeletionDate)))
+			local OK = ""
+			if not t.OK then
+				OK = "(\f8!\f7)"
+			end
+			print(string.format("\fc%s\f7%s (\fe%s\f7) \fu%s\f7 \f8%s\f7", t.Path, OK, t.Name, sizeToReadable(t.Size), toLocalTime(t.DeletionDate)))
 		end
 	else
 		print("Nothing in trash")
@@ -197,7 +235,7 @@ function search_trash(term)
 				t.Path:sub(e + 1, #t.Path)
 				)
 
-				print(string.format("\fc%s\f7 (\fe%s\f7) \fu%s\f7 \f8%s\f7", path, t.name, sizeToReadable(t.Size), toLocalTime(t.DeletionDate)))
+				print(string.format("\fc%s\f7 (\fe%s\f7) \fu%s\f7 \f8%s\f7", path, t.Name, sizeToReadable(t.Size), toLocalTime(t.DeletionDate)))
 			end
 		end
 	else
@@ -293,11 +331,21 @@ function _init()
 		})
 
 		menuitem({
-			id = 3,
+			divider = true
+		})
+
+		menuitem({
+			id = 4,
 			label = "Help",
 			action = function ()
 				create_process("/system/apps/notebook.p64", { argv = { env().prog_name .. "/README.txt" } })
 			end
+		})
+
+		menuitem({
+			id = 5,
+			label = "Refresh",
+			action = update_trash_dir
 		})
 	end
 
@@ -310,7 +358,7 @@ function _init()
 		update_trash_dir()
 	end)
 
-	on_event("modified:" .. TRASH_FILE, function()
+	on_event("modified:" .. TRASH_UPDATE_FILE, function()
 		list_trash()
 	end)
 
@@ -355,10 +403,10 @@ function _update()
 
 		if row >= 0 and row < count and mb ~= prev_mb then
 			if (mb & 0x1) == 0x1 then
-				restore_trash(trash[row + offset + 1].name)
+				restore_trash(trash[row + offset + 1].Name)
 				update_trash_dir()
 			elseif (mb & 0x2) == 0x2 then
-				delete_trash(trash[row + offset + 1].name)
+				delete_trash(trash[row + offset + 1].Name)
 				update_trash_dir()
 			end
 		end
@@ -385,7 +433,12 @@ function _draw()
 
 		for i = 1, count, 1 do
 			local t = trash[i + offset]
-			print(string.format("\fg%s\f5 \fu%s\f5 \f8%s\f5", t.Path, sizeToReadable(t.Size), toLocalTime(t.DeletionDate)), 0, (i - 1) * 10 + 1)
+			local OK = ""
+			if not t.OK then
+				OK = "(\f8!\f5)"
+			end
+
+			print(string.format("\fg%s\f5%s \fu%s\f5 \f8%s\f5", t.Path, OK, sizeToReadable(t.Size), toLocalTime(t.DeletionDate)), 0, (i - 1) * 10 + 1)
 			line(0, (i - 1) * 10 - 1, width, (i - 1) * 10 - 1, 5)
 		end
 		line(0, (count) * 10 - 1, width, (count) * 10 - 1, 5)
