@@ -8,10 +8,14 @@ function unique_filename(dest_folder, file)
 	local basename = file:basename()
 	local dest = string.format("%s/%s", dest_folder, basename)
 	local ext = file:ext()
-	local name = basename:sub(1, #basename - #ext - 1)
+    local name = ext == nil and
+        basename or
+        basename:sub(1, #basename - #ext - 1)
 
 	while fstat(dest) do
-		dest = string.format("%s/%s_%d.%s", dest_folder, name, c, ext)
+        dest = ext == nil and
+            string.format("%s/%s_%d", dest_folder, name, c) or
+            string.format("%s/%s_%d.%s", dest_folder, name, c, ext)
 		c += 1
 	end
 
