@@ -9,6 +9,11 @@
 --- @field Path string
 --- @field DeletionDate string
 
+cd(env().path)
+local argv = env().argv or {}
+
+local is_cli = false
+
 local TRASH_FOLDER = "/appdata/trash"
 
 if not fstat(TRASH_FOLDER) then
@@ -16,6 +21,59 @@ if not fstat(TRASH_FOLDER) then
 end
 
 local trash = {}
+
+--- Parses arguments to find flag arguments and file arguments
+--- Flag arguments start with --
+--- Any arguments after the literal argument "--" will *always* be interpreted as a file, regardless of whether it starts with --
+--- Returns array of flag arguments and array of file arguments
+--- @return string[], string[]
+function parse_arguments()
+    local file_arguments = {}
+    local flag_arguments = {}
+
+    local is_always_file = false
+
+    for arg in all(argv) do
+        if not is_always_file then
+            if arg == "--" then
+                is_always_file = true
+            elseif arg:find("^%-%-") then
+                add(flag_arguments, arg)
+            else
+                add(file_arguments, arg)
+            end
+        else
+            add(file_arguments, arg)
+        end
+    end
+
+    return flag_arguments, file_arguments
+end
+
+--- Searches for a term in a table
+--- If term is not found, return -1
+--- @param tbl table
+--- @param term any
+--- @return integer
+function search(tbl, term)
+    for i, item in ipairs(tbl) do
+        if item == term then
+            return i
+        end
+    end
+
+    return -1
+end
+
+function amap(tbl, cb)
+    local res = {}
+
+    for i, item in ipairs(tbl) do
+        add(res, cb(item, i, tbl))
+    end
+
+    return res
+end
 
 --- Gets a unique filename to put in the destination folder
 --- If a file of that name already exists, add a number to the end to avoid collisions
@@ -69,7 +127,11 @@ function restore_trash(f)
 	store_metadata(file, { TrashInfo = {} })
 	mv(file, path)
 
-	notify(string.format("Restored %s to %s", f, path))
+    if is_cli then
+        print(string.format("Restored \fe%s\f7 to \fe%s\f7", f, path))
+    else
+        notify(string.format("Restored %s to %s", f, path))
+    end
 end
 
 --- Restore all files from trash
@@ -78,7 +140,12 @@ function restore_all_trash()
 	for f in all(trash_files) do
 		restore_trash(f)
 	end
-	notify(string.format("Restored %d items", #trash_files))
+
+    if is_cli then
+        print(string.format("Restored \fe%d\f7 items", #trash_files))
+    else
+        notify(string.format("Restored %d items", #trash_files))
+    end
 end
 
 --- Permanantly delete a file from trash
@@ -115,10 +182,81 @@ function put_trash(file)
 	store_metadata(file, metadata)
 	mv(file, dest)
 
-	notify(string.format("Moved %s to trash", file))
+    if is_cli then
+        print(string.format("Moved \fe%s\f7 to trash", file))
+    else
+        notify(string.format("Moved %s to trash", file))
+    end
+end
+
+--- Put a list of files to trash
+--- @param files string[]
+function put_multiple_trash(files)
+    local c = 0
+    for f in all(files) do
+        if fstat(f) then
+            c += 1
+            put_trash(f)
+        end
+    end
+
+    if is_cli then
+        print(string.format("Moved \fe%d\f7 files to trash", c))
+    else
+        notify(string.format("Moved %d files to trash", c))
+    end
+end
+
+function print_trash()
+    if #trash > 0 then
+        for t in all(trash) do
+            print(string.format("\fe%s\f7 (\fc%s\f7) \f8%s\f7", t.name, t.Path, t.DeletionDate))
+        end
+    else
+        print("Nothing in trash")
+    end
 end
 
 function _init()
+	list_trash()
+
+    local flag_arguments, file_arguments = parse_arguments()
+
+    if #flag_arguments > 0 then
+        is_cli = true
+
+        if search(flag_arguments, "--list") > -1 or search(flag_arguments, "--search") > -1 then
+            print_trash()
+            exit(0)
+        elseif search(flag_arguments, "--empty") > -1 then
+            empty_trash()
+            exit(0)
+        elseif search(flag_arguments, "--restore") > -1 then
+            for f in all(file_arguments) do
+                restore_trash(f)
+            end
+
+            exit(0)
+        elseif search(flag_arguments, "--restore-all") > -1 then
+            restore_all_trash()
+            exit(0)
+        elseif search(flag_arguments, "--tooltray")
+            exit(0)
+        end
+    elseif #file_arguments > 0 then
+        is_cli = true
+
+        -- if file arguments are available, but no flag arguments
+        -- delete files
+        for f in all(file_arguments) do
+            if fstat(f) then
+                put_trash(f)
+            end
+        end
+
+        exit(0)
+    end
+
 	menuitem({
 		id = 1,
 		label = "Empty",
@@ -141,15 +279,14 @@ function _init()
 		width = 256, height = 64,
 		title = "Trash Manager"
 	})
-	list_trash()
 
 	on_event("drop_items", function (msg)
-		for file in all(msg.items) do
-			put_trash(file.fullpath)
-			list_trash()
-		end
+        local files = amap(msg.items, function (f)
+            return f.fullpath
+        end)
+        put_multiple_trash(files)
 
-		notify(string.format("Moved %d items to trash", #msg.items))
+        list_trash()
 	end)
 
 	mx, my, mb = 0, 0, 0
