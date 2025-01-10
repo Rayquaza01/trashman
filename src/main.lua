@@ -1,4 +1,4 @@
---[[pod_format="raw",created="2024-03-15 13:58:36",modified="2025-01-09 19:48:11",revision=550]]
+--[[pod_format="raw",created="2024-03-15 13:58:36",modified="2025-01-10 00:13:36",revision=553]]
 -- Trash v1.0
 -- by Arnaught
 
@@ -13,14 +13,20 @@ cd(env().path)
 local argv = env().argv or {}
 
 local is_cli = false
+local is_tooltray = false
 
 local TRASH_FOLDER = "/appdata/trash"
+local TRASH_FILE = TRASH_FOLDER .. "/.trash"
 
 if not fstat(TRASH_FOLDER) then
 	mkdir(TRASH_FOLDER)
 end
 
 local trash = {}
+
+function update_trash_dir()
+    store(TRASH_FILE, "")
+end
 
 --- Parses arguments to find flag arguments and file arguments
 --- Flag arguments start with --
@@ -162,13 +168,18 @@ function empty_trash()
 	for f in all(trash_files) do
 		rm(TRASH_FOLDER .. "/" .. f)
 	end
-	notify(string.format("Permanantly deleted %d items", #trash_files))
+
+    if is_cli then
+        print(string.format("Permanantly deleted \fe%d\f7 items", #trash_files))
+    else
+        notify(string.format("Permanantly deleted %d items", #trash_files))
+    end
 end
 
 --- Trash a file
 --- Will add a TrashInfo metadata key, containing the deletion date and original path,
 --- and move the file to the trash folder
---- @path file string
+--- @param file string
 function put_trash(file)
     local dest = unique_filename(TRASH_FOLDER, file)
 
@@ -205,6 +216,8 @@ function put_multiple_trash(files)
     else
         notify(string.format("Moved %d files to trash", c))
     end
+
+    update_trash_dir()
 end
 
 function print_trash()
@@ -230,18 +243,24 @@ function _init()
             exit(0)
         elseif search(flag_arguments, "--empty") > -1 then
             empty_trash()
+
+            update_trash_dir()
             exit(0)
         elseif search(flag_arguments, "--restore") > -1 then
             for f in all(file_arguments) do
                 restore_trash(f)
             end
 
+            update_trash_dir()
+
             exit(0)
         elseif search(flag_arguments, "--restore-all") > -1 then
             restore_all_trash()
+
+            update_trash_dir()
             exit(0)
-        elseif search(flag_arguments, "--tooltray") then
-            exit(0)
+        elseif search(flag_arguments, "--tooltray") > -1 then
+            is_tooltray = true
         end
     elseif #file_arguments > 0 then
         is_cli = true
@@ -250,35 +269,42 @@ function _init()
         -- delete files
         for f in all(file_arguments) do
             if fstat(f) then
-                put_trash(f)
+                put_trash(fullpath(f))
             end
         end
+
+        update_trash_dir()
 
         exit(0)
     end
 
-	menuitem({
-		id = 1,
-		label = "Empty",
-		action = function ()
-			empty_trash()
-			list_trash()
-		end
-	})
 
-	menuitem({
-		id = 2,
-		label = "Restore All",
-		action = function ()
-			restore_all_trash()
-			list_trash()
-		end
-	})
+    if is_tooltray then
+        window(16, 16)
+    else
+        window({
+            width = 256, height = 64,
+            title = "Trash Manager"
+        })
 
-	window({
-		width = 256, height = 64,
-		title = "Trash Manager"
-	})
+        menuitem({
+            id = 1,
+            label = "Empty",
+            action = function ()
+                empty_trash()
+                update_trash_dir()
+            end
+        })
+
+        menuitem({
+            id = 2,
+            label = "Restore All",
+            action = function ()
+                restore_all_trash()
+                update_trash_dir()
+            end
+        })
+    end
 
 	on_event("drop_items", function (msg)
         local files = amap(msg.items, function (f)
@@ -286,8 +312,12 @@ function _init()
         end)
         put_multiple_trash(files)
 
-        list_trash()
+        update_trash_dir()
 	end)
+
+    on_event("modified:" .. TRASH_FILE, function ()
+        list_trash()
+    end)
 
 	mx, my, mb = 0, 0, 0
 	prev_mb = 0
@@ -297,26 +327,49 @@ end
 function _update()
 	prev_mb = mb
 	mx, my, mb = mouse()
-	row = flr(my / 8)
 
-	if row >= 0 and row < #trash and mb ~= prev_mb then
-		if (mb & 0x1) == 0x1 then
-			restore_trash(trash[row + 1].name)
-			list_trash()
-		elseif (mb & 0x2) == 0x2 then
-			delete_trash(trash[row + 1].name)
-			list_trash()
-		end
-	end
+    if is_tooltray then
+        if mb ~= prev_mb then
+            if (mb & 0x1) == 0x1 then
+                create_process(env().prog_name)
+            elseif (mb & 0x2) == 0x2 then
+                empty_trash()
+                list_trash()
+            end
+        end
+    else
+        row = flr(my / 8)
+
+        if row >= 0 and row < #trash and mb ~= prev_mb then
+            if (mb & 0x1) == 0x1 then
+                restore_trash(trash[row + 1].name)
+                list_trash()
+            elseif (mb & 0x2) == 0x2 then
+                delete_trash(trash[row + 1].name)
+                list_trash()
+            end
+        end
+    end
 end
 
 function _draw()
-	cls()
-	if row >= 0 and row < #trash then
-		rectfill(0, row * 8, get_display():width(), (row + 1) * 8, 16)
-	end
+    if is_tooltray then
+        cls(1)
 
-	for i, t in ipairs(trash) do
-		print(string.format("\fe%s\f7 (\fc%s\f7) \f8%s\f7", t.name, t.Path, t.DeletionDate), 0, (i - 1) * 9)
-	end
+        if #trash > 0 then
+            spr(2)
+        else
+            spr(1)
+        end
+    else
+        cls()
+
+        if row >= 0 and row < #trash then
+            rectfill(0, row * 8, get_display():width(), (row + 1) * 8, 16)
+        end
+
+        for i, t in ipairs(trash) do
+            print(string.format("\fe%s\f7 (\fc%s\f7) \f8%s\f7", t.name, t.Path, t.DeletionDate), 0, (i - 1) * 9)
+        end
+    end
 end
