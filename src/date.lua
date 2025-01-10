@@ -2,5 +2,5 @@
 --- @param ts string
 --- @return string
 function toLocalTime(ts)
-    return date("%Y-%m-%d %H:%M:%S", ts)
+	return date("%Y-%m-%d %H:%M:%S", ts)
 end
