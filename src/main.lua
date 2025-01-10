@@ -113,18 +113,29 @@ function restore_trash(f)
 	end
 end
 
---- Restore all files from trash
-function restore_all_trash()
-	local trash_files = ls(TRASH_FILES)
-	for f in all(trash_files) do
-		restore_trash(f)
+--- Restores multiple items from trash
+--- @param files string[]
+function restore_multiple_trash(files)
+	local c = 0
+	for f in all(files) do
+		if fstat(TRASH_FILES .. "/" .. f) then
+			c += 1
+			restore_trash(f)
+		end
 	end
 
 	if is_cli then
-		print(string.format("Restored \fe%d\f7 items", #trash_files))
+		print(string.format("Restored \fe%d\f7 files", c))
 	else
-		notify(string.format("Restored %d items", #trash_files))
+		notify(string.format("Restored %d files", c))
 	end
+end
+
+--- Restore all files from trash
+function restore_all_trash()
+	local trash_files = ls(TRASH_FILES)
+
+	restore_multiple_trash(trash_files)
 end
 
 --- Permanently delete a file from trash
@@ -165,15 +176,8 @@ end
 --- Permanently delete all files from trash
 function empty_trash()
 	local trash_files = ls(TRASH_FILES)
-	for f in all(trash_files) do
-		delete_trash(f)
-	end
 
-	if is_cli then
-		print(string.format("Permanently deleted \fe%d\f7 items", #trash_files))
-	else
-		notify(string.format("Permanently deleted %d items", #trash_files))
-	end
+	delete_multiple_trash(trash_files)
 end
 
 --- Trash a file
@@ -291,9 +295,7 @@ function _init()
 			update_trash_dir()
 			exit(0)
 		elseif includes(flag_arguments, "--restore") then
-			for f in all(file_arguments) do
-				restore_trash(f)
-			end
+			restore_multiple_trash(file_arguments)
 
 			update_trash_dir()
 
