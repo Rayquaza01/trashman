@@ -218,11 +218,10 @@ function _init()
 
         -- if file arguments are available, but no flag arguments
         -- delete files
-        for f in all(file_arguments) do
-            if fstat(f) then
-                put_trash(fullpath(f))
-            end
-        end
+        local files = amap(file_arguments, function (f)
+            return fullpath(f)
+        end)
+        put_multiple_trash(files)
 
         update_trash_dir()
 
