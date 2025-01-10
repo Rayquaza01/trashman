@@ -5,24 +5,24 @@
 --- @param argv string[]
 --- @return string[], string[]
 function parse_arguments(argv)
-    local file_arguments = {}
-    local flag_arguments = {}
+	local file_arguments = {}
+	local flag_arguments = {}
 
-    local is_always_file = false
+	local is_always_file = false
 
-    for arg in all(argv) do
-        if not is_always_file then
-            if arg == "--" then
-                is_always_file = true
-            elseif arg:find("^%-%-") then
-                add(flag_arguments, arg)
-            else
-                add(file_arguments, arg)
-            end
-        else
-            add(file_arguments, arg)
-        end
-    end
+	for arg in all(argv) do
+		if not is_always_file then
+			if arg == "--" then
+				is_always_file = true
+			elseif arg:find("^%-%-") then
+				add(flag_arguments, arg)
+			else
+				add(file_arguments, arg)
+			end
+		else
+			add(file_arguments, arg)
+		end
+	end
 
-    return flag_arguments, file_arguments
+	return flag_arguments, file_arguments
 end

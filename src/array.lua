@@ -2,13 +2,13 @@
 --- @param tbl table
 --- @param cb function
 function amap(tbl, cb)
-    local res = {}
+	local res = {}
 
-    for i, item in ipairs(tbl) do
-        add(res, cb(item, i, tbl))
-    end
+	for i, item in ipairs(tbl) do
+		add(res, cb(item, i, tbl))
+	end
 
-    return res
+	return res
 end
 
 --- Searches for a term in a table
@@ -17,11 +17,11 @@ end
 --- @param term any
 --- @return integer
 function search(tbl, term)
-    for i, item in ipairs(tbl) do
-        if item == term then
-            return i
-        end
-    end
+	for i, item in ipairs(tbl) do
+		if item == term then
+			return i
+		end
+	end
 
-    return -1
+	return -1
 end
