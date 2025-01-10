@@ -74,9 +74,6 @@ function list_trash()
 				local metadata = fetch_metadata(file)
 				Path = "/" .. f
 				DeletionDate = metadata.modified
-
-				printh("Path: " .. Path)
-				printh("Deleted: " .. DeletionDate)
 			end
 
 			add(trash, {
@@ -139,17 +136,24 @@ end
 --- Should be a filename inside the trash folder
 --- @param f string
 function delete_trash(f)
-	rm(TRASH_FOLDER .. "/" .. f)
-	notify(string.format("Permanantly deleted %s", f))
+	local file = TRASH_FILES .. "/" .. f
+	local info_file = string.format("%s/%s.trashinfo", TRASH_INFO, file:basename())
+
+	rm(file)
+	rm(info_file)
+
+	if is_cli then
+		print(string.format("Permanantly deleted \fe%s\f7", f))
+	else
+		notify(string.format("Permanantly deleted %s", f))
+	end
 end
 
 --- Permanantly delete all files from trash
 function empty_trash()
 	local trash_files = ls(TRASH_FILES)
 	for f in all(trash_files) do
-		local info_file = string.format("%s/%s.trashinfo", TRASH_INFO, f:basename())
-		rm(info_file)
-		rm(TRASH_FOLDER .. "/" .. f)
+		delete_trash(f)
 	end
 
 	if is_cli then
@@ -247,7 +251,9 @@ function _init()
 	cd(env().path)
 	local argv = env().argv or {}
 
+	update_trash_dir()
 	list_trash()
+
 	local flag_arguments, file_arguments = parse_arguments(argv)
 
 	if #flag_arguments > 0 then
@@ -283,6 +289,7 @@ function _init()
 			exit(0)
 		elseif search(flag_arguments, "--tooltray") > -1 then
 			is_tooltray = true
+			is_cli = false
 		end
 	elseif #file_arguments > 0 then
 		is_cli = true
@@ -337,6 +344,7 @@ function _init()
 		menuitem({
 			id = 4,
 			label = "Help",
+			shortcut = "F1",
 			action = function ()
 				create_process("/system/apps/notebook.p64", { argv = { env().prog_name .. "/README.txt" } })
 			end
@@ -345,6 +353,7 @@ function _init()
 		menuitem({
 			id = 5,
 			label = "Refresh",
+			shortcut = "F5",
 			action = update_trash_dir
 		})
 	end
@@ -387,6 +396,14 @@ function _update()
 			end
 		end
 	else
+		if keyp("F1") then
+			create_process("/system/apps/notebook.p64", { argv = { env().prog_name .. "/README.txt" } })
+		end
+
+		if keyp("f5") then
+			update_trash_dir()
+		end
+
 		row = flr(my / 10)
 
 		if btnp(2) then
