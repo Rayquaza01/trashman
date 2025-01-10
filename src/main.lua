@@ -75,7 +75,7 @@ function restore_trash(f)
     -- If a file exists in the location we are restoring to
     -- then the restored file will overwrite whatever is currently there
     -- to avoid this, we can create a unique filename for the destination
-    -- path = unique_filename(path:dirname(), path)
+    path = unique_filename(path:dirname(), path)
 
 	-- Can't remove metadata item, so just blank it
 	-- see /system/lib/fs.lua line 374
