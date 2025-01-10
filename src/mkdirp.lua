@@ -9,8 +9,8 @@ function mkdirp(name)
 
 		if parent ~= "/" and not fstat(parent) then
 			mkdirp(parent)
-		else
-			mkdir(name)
 		end
+
+		mkdir(name)
 	end
 end
