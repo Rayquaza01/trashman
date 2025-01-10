@@ -6,6 +6,7 @@ include("args.lua")
 include("array.lua")
 include("date.lua")
 include("filesizes.lua")
+include("mkdirp.lua")
 include("unique_filename.lua")
 
 local width
@@ -100,6 +101,7 @@ function restore_trash(f)
 		-- to avoid this, we can create a unique filename for the destination
 		path = unique_filename(path:dirname(), path)
 
+		mkdirp(path:dirname())
 		rm(info_file)
 		mv(file, path)
 
