@@ -4,6 +4,7 @@
 
 include("args.lua")
 include("array.lua")
+include("date.lua")
 include("filesizes.lua")
 include("unique_filename.lua")
 
@@ -172,7 +173,27 @@ end
 function print_trash()
     if #trash > 0 then
         for t in all(trash) do
-            print(string.format("\fc%s\f7 (\fe%s\f7) \fu%s\f7 \f8%s\f7", t.Path, t.name, sizeToReadable(t.Size), t.DeletionDate))
+            print(string.format("\fc%s\f7 (\fe%s\f7) \fu%s\f7 \f8%s\f7", t.Path, t.name, sizeToReadable(t.Size), toLocalTime(t.DeletionDate)))
+        end
+    else
+        print("Nothing in trash")
+    end
+end
+
+function search_trash(term)
+    if #trash > 0 then
+        for t in all(trash) do
+            local s, e = t.Path:find(term)
+            if s then
+                local path = string.format(
+                    "%s\fb%s\fc%s",
+                    t.Path:sub(0, s - 1),
+                    t.Path:sub(s, e),
+                    t.Path:sub(e + 1, #t.Path)
+                )
+
+                print(string.format("\fc%s\f7 (\fe%s\f7) \fu%s\f7 \f8%s\f7", path, t.name, sizeToReadable(t.Size), toLocalTime(t.DeletionDate)))
+            end
         end
     else
         print("Nothing in trash")
@@ -189,8 +210,15 @@ function _init()
     if #flag_arguments > 0 then
         is_cli = true
 
-        if search(flag_arguments, "--list") > -1 then
-            print_trash()
+        if search(flag_arguments, "--help") > -1 then
+            create_process("/system/apps/notebook.p64", { argv = { env().prog_name .. "/README.txt" } })
+            exit()
+        elseif search(flag_arguments, "--list") > -1 or search(flag_arguments, "--search") then
+            if #file_arguments > 0 then
+                search_trash(file_arguments[1])
+            else
+                print_trash()
+            end
             exit(0)
         elseif search(flag_arguments, "--empty") > -1 then
             empty_trash()
@@ -344,7 +372,7 @@ function _draw()
 
         for i = 1, count, 1 do
             local t = trash[i + offset]
-            print(string.format("\fg%s\f5 \fu%s\f5 \f8%s\f5", t.Path, sizeToReadable(t.Size), t.DeletionDate), 0, (i - 1) * 10 + 1)
+            print(string.format("\fg%s\f5 \fu%s\f5 \f8%s\f5", t.Path, sizeToReadable(t.Size), toLocalTime(t.DeletionDate)), 0, (i - 1) * 10 + 1)
             line(0, (i - 1) * 10 - 1, width, (i - 1) * 10 - 1, 5)
         end
         line(0, (count) * 10 - 1, width, (count) * 10 - 1, 5)
