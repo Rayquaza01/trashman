@@ -50,9 +50,9 @@ function list_trash()
 		local file = TRASH_FILES .. "/" .. f
 		local info_file = string.format("%s/%s.trashinfo", TRASH_INFO, file:basename())
 
-		local ftype, size = fstat(file)
+		if fstat(file) then
+			local size = getSize(file)
 
-		if ftype then
 			--- @cast size integer
 			total_size += size
 

@@ -14,6 +14,27 @@ local conversions = {
 	}
 }
 
+--- Get the size of a path
+--- If path is a folder, it will also get the size of all contents
+--- Not perfect, won't include size of hidden (dot) files, as those aren't returned by ls
+--- @param path string
+--- @return number
+function getSize(path)
+	local ftype, size = fstat(path)
+	--- @cast size number
+
+	if ftype == "file" then
+		return size
+	elseif ftype == "folder" then
+		local contents = ls(path)
+		for f in all(contents) do
+			size += getSize(path .. "/" .. f)
+		end
+	end
+
+	return size
+end
+
 --- Converts a number of bytes to a readable size
 --- @param sz number
 --- @return string
