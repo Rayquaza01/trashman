@@ -8,13 +8,6 @@ include("date.lua")
 include("filesizes.lua")
 include("unique_filename.lua")
 
---- @class __FileMetadata
---- @field TrashInfo? __TrashInfo
-
---- @class __TrashInfo
---- @field Path string
---- @field DeletionDate string
-
 local width
 local height
 local rows
