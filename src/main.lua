@@ -240,7 +240,7 @@ function _init()
         elseif search(flag_arguments, "--restore-all") > -1 then
             restore_all_trash()
             exit(0)
-        elseif search(flag_arguments, "--tooltray")
+        elseif search(flag_arguments, "--tooltray") then
             exit(0)
         end
     elseif #file_arguments > 0 then
