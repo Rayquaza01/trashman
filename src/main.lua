@@ -170,6 +170,8 @@ function put_multiple_trash(files)
 	update_trash_dir()
 end
 
+--- Print all trash items in cli
+--- Format: Path, Trash name, Filesize, Deletion date
 function print_trash()
 	if #trash > 0 then
 		for t in all(trash) do
@@ -180,6 +182,9 @@ function print_trash()
 	end
 end
 
+--- Search for an item in trash and print the results to screen
+--- Format: Path, Trash name, Filesize, Deletion date
+--- @param term string
 function search_trash(term)
 	if #trash > 0 then
 		for t in all(trash) do
@@ -284,6 +289,14 @@ function _init()
 			action = function ()
 				restore_all_trash()
 				update_trash_dir()
+			end
+		})
+
+		menuitem({
+			id = 3,
+			label = "Help",
+			action = function ()
+				create_process("/system/apps/notebook.p64", { argv = { env().prog_name .. "/README.txt" } })
 			end
 		})
 	end
