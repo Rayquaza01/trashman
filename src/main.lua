@@ -18,6 +18,8 @@ local width
 local height
 local rows
 
+offset = 0
+
 local is_cli = false
 local is_tooltray = false
 
@@ -238,7 +240,7 @@ function _init()
 
         width = get_display():width()
         height = get_display():height()
-        rows = (height / 16) - 1
+        rows = flr(height / 10) - 1
 
         menuitem({
             id = 1,
@@ -275,7 +277,7 @@ function _init()
     on_event("resize", function()
         width = get_display():width()
         height = get_display():height()
-        rows = flr(height / 16)
+        rows = flr(height / 10) - 1
     end)
 
 	mx, my, mb = 0, 0, 0
@@ -297,7 +299,7 @@ function _update()
             end
         end
     else
-        row = flr(my / 8)
+        row = flr(my / 9)
 
         if row >= 0 and row < #trash and mb ~= prev_mb then
             if (mb & 0x1) == 0x1 then
@@ -321,17 +323,21 @@ function _draw()
             spr(1)
         end
     else
-        cls()
+        cls(7)
 
-        rectfill(0, height - 9, width, height, 20)
-        print(string.format("\fc%d\f7 items, \fe%s\f7, TOP", #trash, sizeToReadable(total_size)), 0, height - 8, 7)
+        rectfill(0, height - 10, width, height, 0)
+        print(string.format("\fc%d\f7 items, \fe%s\f7", #trash, sizeToReadable(total_size)), 0, height - 8, 7)
 
-        if row >= 0 and row < #trash then
-            rectfill(0, row * 8, get_display():width(), (row + 1) * 8, 16)
+        if mx >= 0 and mx <= width and row >= 0 and row < #trash then
+            rectfill(0, row * 10, get_display():width(), (row + 1) * 10 - 1, 6)
         end
 
-        for i, t in ipairs(trash) do
-            print(string.format("\fc%s\f7 \fe%s\f7 \f8%s\f7", t.Path, sizeToReadable(t.Size), t.DeletionDate), 0, (i - 1) * 9)
+        local count = min(#trash, rows)
+        for i = 1, count, 1 do
+            local t = trash[i + offset]
+            print(string.format("\fg%s\f7 \fu%s\f7 \f8%s\f7", t.Path, sizeToReadable(t.Size), t.DeletionDate), 0, (i - 1) * 10 + 1)
+            line(0, (i - 1) * 10 - 1, width, (i - 1) * 10 - 1, 5)
         end
+        line(0, (count) * 10 - 1, width, (count) * 10 - 1, 5)
     end
 end
