@@ -256,7 +256,7 @@ function _init()
 		if search(flag_arguments, "--help") > -1 then
 			create_process("/system/apps/notebook.p64", { argv = { env().prog_name .. "/README.txt" } })
 			exit()
-		elseif search(flag_arguments, "--list") > -1 or search(flag_arguments, "--search") then
+		elseif search(flag_arguments, "--list") > -1 or search(flag_arguments, "--search") > -1 then
 			if #file_arguments > 0 then
 				search_trash(file_arguments[1])
 			else
