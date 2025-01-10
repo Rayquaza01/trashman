@@ -172,7 +172,7 @@ end
 function print_trash()
     if #trash > 0 then
         for t in all(trash) do
-            print(string.format("\fe%s\f7 (\fc%s\f7) \f8%s\f7", t.name, t.Path, t.DeletionDate))
+            print(string.format("\fc%s\f7 (\fe%s\f7) \fu%s\f7 \f8%s\f7", t.Path, t.name, sizeToReadable(t.Size), t.DeletionDate))
         end
     else
         print("Nothing in trash")
