@@ -132,13 +132,31 @@ function delete_trash(f)
 	local file = TRASH_FILES .. "/" .. f
 	local info_file = string.format("%s/%s.trashinfo", TRASH_INFO, file:basename())
 
-	rm(file)
-	rm(info_file)
+	if fstat(file) then
+		rm(file)
+		rm(info_file)
+
+		if is_cli then
+			print(string.format("Permanantly deleted \fe%s\f7", f))
+		else
+			notify(string.format("Permanantly deleted %s", f))
+		end
+	end
+end
+
+function delete_multiple_trash(files)
+	local c = 0
+	for f in all(files) do
+		if fstat(TRASH_FILES .. "/" .. f) then
+			c += 1
+			delete_trash(f)
+		end
+	end
 
 	if is_cli then
-		print(string.format("Permanantly deleted \fe%s\f7", f))
+		print(string.format("Permanantly deleted \fe%d\f7 files", c))
 	else
-		notify(string.format("Permanantly deleted %s", f))
+		notify(string.format("Permanantly deleted %d files", c))
 	end
 end
 
@@ -197,8 +215,6 @@ function put_multiple_trash(files)
 	else
 		notify(string.format("Moved %d files to trash", c))
 	end
-
-	update_trash_dir()
 end
 
 --- Print all trash items in cli
@@ -252,22 +268,27 @@ function _init()
 	if #flag_arguments > 0 then
 		is_cli = true
 
-		if search(flag_arguments, "--help") > -1 then
+		if includes(flag_arguments, "--help") then
 			create_process("/system/apps/notebook.p64", { argv = { env().prog_name .. "/README.txt" } })
 			exit()
-		elseif search(flag_arguments, "--list") > -1 or search(flag_arguments, "--search") > -1 then
+		elseif includes(flag_arguments, "--list") or includes(flag_arguments, "--search") then
 			if #file_arguments > 0 then
 				search_trash(file_arguments[1])
 			else
 				print_trash()
 			end
 			exit(0)
-		elseif search(flag_arguments, "--empty") > -1 then
+		elseif includes(flag_arguments, "--empty") or includes(flag_arguments, "--delete-all") then
 			empty_trash()
 
 			update_trash_dir()
 			exit(0)
-		elseif search(flag_arguments, "--restore") > -1 then
+		elseif includes(flag_arguments, "--delete") then
+			delete_multiple_trash(file_arguments)
+
+			update_trash_dir()
+			exit(0)
+		elseif includes(flag_arguments, "--restore") then
 			for f in all(file_arguments) do
 				restore_trash(f)
 			end
@@ -275,12 +296,12 @@ function _init()
 			update_trash_dir()
 
 			exit(0)
-		elseif search(flag_arguments, "--restore-all") > -1 then
+		elseif includes(flag_arguments, "--restore-all") then
 			restore_all_trash()
 
 			update_trash_dir()
 			exit(0)
-		elseif search(flag_arguments, "--tooltray") > -1 then
+		elseif includes(flag_arguments, "--tooltray") then
 			is_tooltray = true
 			is_cli = false
 		end

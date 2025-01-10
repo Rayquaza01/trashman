@@ -11,17 +11,16 @@ function amap(tbl, cb)
 	return res
 end
 
---- Searches for a term in a table
---- If term is not found, return -1
+--- Checks if a table includes an item
 --- @param tbl table
 --- @param term any
---- @return integer
-function search(tbl, term)
+--- @return boolean
+function includes(tbl, term)
 	for i, item in ipairs(tbl) do
 		if item == term then
-			return i
+			return true
 		end
 	end
 
-	return -1
+	return false
 end
