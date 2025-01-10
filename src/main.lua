@@ -95,8 +95,6 @@ function restore_trash(f)
 			fetch(info_file).TrashInfo.Path or
 			"/" .. f
 
-		printh("Restore Path: ".. path)
-
 		-- If a file exists in the location we are restoring to
 		-- then the restored file will overwrite whatever is currently there
 		-- to avoid this, we can create a unique filename for the destination
@@ -391,7 +389,7 @@ function _update()
 			end
 		end
 	else
-		if keyp("F1") then
+		if keyp("f1") then
 			create_process("/system/apps/notebook.p64", { argv = { env().prog_name .. "/README.txt" } })
 		end
 
