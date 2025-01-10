@@ -280,14 +280,14 @@ function _init()
         rows = flr(height / 10) - 1
     end)
 
-	mx, my, mb = 0, 0, 0
+	mx, my, mb, wheel_x, wheel_y = 0, 0, 0, 0, 0
 	prev_mb = 0
 	row = -1
 end
 
 function _update()
 	prev_mb = mb
-	mx, my, mb = mouse()
+	mx, my, mb, wheel_x, wheel_y = mouse()
 
     if is_tooltray then
         if mb ~= prev_mb then
@@ -295,19 +295,31 @@ function _update()
                 create_process(env().prog_name)
             elseif (mb & 0x2) == 0x2 then
                 empty_trash()
-                list_trash()
+                update_trash_dir()
             end
         end
     else
-        row = flr(my / 9)
+        row = flr(my / 10)
 
-        if row >= 0 and row < #trash and mb ~= prev_mb then
+        if btnp(2) then
+            offset -= 1
+        elseif btnp(3) then
+            offset += 1
+        end
+
+        offset -= wheel_y
+
+        offset = mid(0, mid(#trash, #trash - rows, 0), offset)
+
+        local count = min(#trash, rows)
+
+        if row >= 0 and row < count and mb ~= prev_mb then
             if (mb & 0x1) == 0x1 then
-                restore_trash(trash[row + 1].name)
-                list_trash()
+                restore_trash(trash[row + offset + 1].name)
+                update_trash_dir()
             elseif (mb & 0x2) == 0x2 then
-                delete_trash(trash[row + 1].name)
-                list_trash()
+                delete_trash(trash[row + offset + 1].name)
+                update_trash_dir()
             end
         end
     end
@@ -325,19 +337,32 @@ function _draw()
     else
         cls(7)
 
-        rectfill(0, height - 10, width, height, 0)
-        print(string.format("\fc%d\f7 items, \fe%s\f7", #trash, sizeToReadable(total_size)), 0, height - 8, 7)
+        local count = min(#trash, rows)
 
-        if mx >= 0 and mx <= width and row >= 0 and row < #trash then
+        if mx >= 0 and mx <= width and row >= 0 and row < count then
             rectfill(0, row * 10, get_display():width(), (row + 1) * 10 - 1, 6)
         end
 
-        local count = min(#trash, rows)
         for i = 1, count, 1 do
             local t = trash[i + offset]
-            print(string.format("\fg%s\f7 \fu%s\f7 \f8%s\f7", t.Path, sizeToReadable(t.Size), t.DeletionDate), 0, (i - 1) * 10 + 1)
+            print(string.format("\fg%s\f5 \fu%s\f5 \f8%s\f5", t.Path, sizeToReadable(t.Size), t.DeletionDate), 0, (i - 1) * 10 + 1)
             line(0, (i - 1) * 10 - 1, width, (i - 1) * 10 - 1, 5)
         end
         line(0, (count) * 10 - 1, width, (count) * 10 - 1, 5)
+
+        rectfill(0, height - 10, width, height, 0)
+        print(string.format("\fc%d\f7 items, \fe%s\f7", #trash, sizeToReadable(total_size)), 0, height - 8, 7)
+
+        if offset == 0 then
+            print("TOP", width - 16, height - 8, 7)
+        elseif offset == mid(#trash, #trash - rows, 0) then
+            print("BOT", width - 16, height - 8, 7)
+        else
+            print(string.format("%02.0f%%", (offset + 1) / #trash * 100), width - 16, height - 8, 7)
+        end
+
+        if #trash == 0 then
+            print("Nothing in trash!", width / 2 - 38, height / 2 - 10, 0)
+        end
     end
 end
