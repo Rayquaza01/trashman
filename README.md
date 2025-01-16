@@ -38,10 +38,10 @@ well. If using it in the terminal, you should save
 the application in `/appdata/system/util` so you
 can access it anywhere.
 
-Delete files
-    trash [files]
+**Delete files**
+ - trash [files]
 
-List files
+**List files**
  - trash --list [search term]
  - trash --search [search term]
 
@@ -64,7 +64,7 @@ If you provide a search term, only files where the
 restore path matches the search term will be
 displayed. The search term can be a Lua Pattern.
 
-Restore files
+**Restore files**
  - trash --restore [files]
  - trash --restore-all
 
@@ -74,7 +74,7 @@ name (from `trash --list`), not the restore path.
 
 `--restore-all` will restore *all* items from trash.
 
-Permanently delete files
+**Permanently delete files**
  - trash --delete [files]
  - trash --delete-all
  - trash --empty
