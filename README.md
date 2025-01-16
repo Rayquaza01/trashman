@@ -42,8 +42,8 @@ Delete files
     trash [files]
 
 List files
-    trash --list [search term]
-    trash --search [search term]
+ - trash --list [search term]
+ - trash --search [search term]
 
 `--list` and `--search` are interchangeable.
 Listing trash from the CLI works similarly to in
@@ -65,8 +65,8 @@ restore path matches the search term will be
 displayed. The search term can be a Lua Pattern.
 
 Restore files
-    trash --restore [files]
-    trash --restore-all
+ - trash --restore [files]
+ - trash --restore-all
 
 Restoring a file will move it from the trash to
 its restore path. The file arguments are the trash
@@ -75,9 +75,9 @@ name (from `trash --list`), not the restore path.
 `--restore-all` will restore *all* items from trash.
 
 Permanently delete files
-    trash --delete [files]
-    trash --delete-all
-    trash --empty
+ - trash --delete [files]
+ - trash --delete-all
+ - trash --empty
 
 File arguments are the trash name (from `trash
 --list`), not the restore path.
