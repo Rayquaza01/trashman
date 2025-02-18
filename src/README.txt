@@ -102,7 +102,7 @@ create_process("/appdata/system/util/trash.p64", {
     },
     window_attribs = {
         workspace = "tooltray",
-        x=350, y=3,
+        x=360, y=5,
         width=16, height=16
     }
 })
@@ -115,7 +115,7 @@ The indicator will display a different icon
 depending on if the trash is empty.
 
 Left clicking the indicator will open the GUI.
-Right clicking the indicator will empty the trash.
+Middle clicking the indicator will empty the trash.
 
 ## filenav.p64 Compatibility
 
