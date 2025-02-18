@@ -1,4 +1,4 @@
---[[pod_format="raw",created="2024-03-15 13:58:36",modified="2025-02-18 16:53:32",revision=565]]
+--[[pod_format="raw",created="2024-03-15 13:58:36",modified="2025-02-18 17:30:17",revision=566]]
 -- Trash v1.0.1
 -- by Arnaught
 
@@ -324,6 +324,9 @@ function _init()
 		exit(0)
 	end
 
+	if env().window_attribs.workspace == "tooltray" then
+		is_tooltray = true
+	end
 
 	if is_tooltray then
 		window(16, 16)
@@ -406,11 +409,17 @@ function _update()
 
 	if is_tooltray then
 		if mb ~= prev_mb then
-			if (mb & 0x1) == 0x1 then
-				create_process(env().argv[0])
-			elseif (mb & 0x4) == 0x4 then
-				empty_trash()
-				update_trash_dir()
+			if not key("ctrl") then
+				if (mb & 0x1) == 0x1 then
+					create_process(env().argv[0])
+				elseif (mb & 0x4) == 0x4 then
+					empty_trash()
+					update_trash_dir()
+				end
+			else
+				if (mb & 0x1) == 0x1 then
+					send_message(3, { event="grab" })
+				end
 			end
 		end
 	else
