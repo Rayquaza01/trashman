@@ -275,7 +275,7 @@ function _init()
 		is_cli = true
 
 		if includes(flag_arguments, "--help") then
-			create_process("/system/apps/notebook.p64", { argv = { env().prog_name .. "/README.txt" } })
+			open(env().argv[0] .. "/README.txt")
 			exit()
 		elseif includes(flag_arguments, "--list") or includes(flag_arguments, "--search") then
 			if #file_arguments > 0 then
@@ -367,7 +367,7 @@ function _init()
 			label = "Help",
 			shortcut = "F1",
 			action = function ()
-				create_process("/system/apps/notebook.p64", { argv = { env().prog_name .. "/README.txt" } })
+				open(env().argv[0] .. "/README.txt")
 			end
 		})
 
@@ -411,7 +411,8 @@ function _update()
 		if mb ~= prev_mb then
 			if not key("ctrl") then
 				if (mb & 0x1) == 0x1 then
-					create_process(env().argv[0])
+					print(env().argv[0])
+					create_process(env().argv[0], {argv = {[0] = env().argv[0]}})
 				elseif (mb & 0x4) == 0x4 then
 					empty_trash()
 					update_trash_dir()
