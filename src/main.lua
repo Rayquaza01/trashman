@@ -1,5 +1,5 @@
 --[[pod_format="raw",created="2024-03-15 13:58:36",modified="2025-02-18 22:19:19",revision=567]]
--- Trash v1.0.1
+-- Trash v1.0.2
 -- by Arnaught
 
 include("args.lua")
