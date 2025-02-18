@@ -459,13 +459,16 @@ end
 
 function _draw()
 	if is_tooltray then
-		cls(1)
+		cls(0)
 
 		if #trash > 0 then
 			spr(2)
 		else
 			spr(1)
 		end
+
+		-- set color 0 to be transparent
+		poke(0x547d, 0xff)
 	else
 		cls(7)
 
