@@ -1,5 +1,5 @@
---[[pod_format="raw",created="2024-03-15 13:58:36",modified="2025-01-10 15:15:27",revision=563]]
--- Trash v1.0
+--[[pod_format="raw",created="2024-03-15 13:58:36",modified="2025-02-18 16:53:32",revision=565]]
+-- Trash v1.0.1
 -- by Arnaught
 
 include("args.lua")
@@ -407,15 +407,15 @@ function _update()
 	if is_tooltray then
 		if mb ~= prev_mb then
 			if (mb & 0x1) == 0x1 then
-				create_process(env().prog_name)
-			elseif (mb & 0x2) == 0x2 then
+				create_process(env().argv[0])
+			elseif (mb & 0x4) == 0x4 then
 				empty_trash()
 				update_trash_dir()
 			end
 		end
 	else
 		if keyp("f1") then
-			create_process("/system/apps/notebook.p64", { argv = { env().prog_name .. "/README.txt" } })
+			open(env().argv[0] .. "/README.txt")
 		end
 
 		if keyp("f5") then
@@ -477,6 +477,16 @@ function _draw()
 			line(0, (i - 1) * 10 - 1, width, (i - 1) * 10 - 1, 5)
 		end
 		line(0, (count) * 10 - 1, width, (count) * 10 - 1, 5)
+
+		-- display line partially covered by toolbar
+		if count + offset < #trash then
+			local t = trash[count + offset + 1]
+			local OK = ""
+			if not t.OK then
+				OK = "(\f8!\f5)"
+			end
+			print(string.format("\fg%s\f5%s \fu%s\f5 \f8%s\f5", t.Path, OK, sizeToReadable(t.Size), toLocalTime(t.DeletionDate)), 0, (count) * 10 + 1)
+		end
 
 		rectfill(0, height - 10, width, height, 0)
 		print(string.format("\fc%d\f7 items, \fe%s\f7", #trash, sizeToReadable(total_size)), 0, height - 8, 7)
