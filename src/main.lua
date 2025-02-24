@@ -331,7 +331,36 @@ function _init()
 
 
 	if is_tooltray then
-		window(16, 16)
+		window({
+			width=16, height=16,
+			resizeable=false,
+			has_frame=false,
+			title="Trash Widget"
+		})
+
+		widget_gui = create_gui({
+			click = function()
+				send_message(3, {event="grab"})
+			end,
+			cursor="grab",
+
+			tap = function(self, msg)
+				if (msg.last_mb & 1) == 1 then
+					create_process(env().argv[0])
+				end
+
+				if (msg.last_mb & 2) == 2 then
+					exit()
+				end
+
+				if (msg.last_mb & 4) == 4 then
+					empty_trash()
+					update_trash_dir()
+				end
+			end
+		})
+
+
 	else
 		window({
 			width = 256, height = 128,
@@ -410,19 +439,8 @@ function _update()
 	mx, my, mb, wheel_x, wheel_y = mouse()
 
 	if is_tooltray then
-		if mb ~= prev_mb then
-			if not key("ctrl") then
-				if (mb & 0x1) == 0x1 then
-					create_process(env().argv[0])
-				elseif (mb & 0x4) == 0x4 then
-					empty_trash()
-					update_trash_dir()
-				end
-			else
-				if (mb & 0x1) == 0x1 then
-					send_message(3, { event="grab" })
-				end
-			end
+		if widget_gui then
+			widget_gui:update_all()
 		end
 	else
 		if keyp("f1") then
