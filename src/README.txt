@@ -113,9 +113,7 @@ change the x and y coordinates above)
 
 Alternatively, you can launch trash.p64 with the
 `--tooltray` argument and drag it to the tooltray.
-You can use Ctrl+Drag to move it inside the
-tooltray. (Tip: Hold right click on the indicator
-to focus it first)
+You can drag it inside the tooltray.
 
 The indicator will display a different icon
 depending on if the trash is empty.
