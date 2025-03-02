@@ -129,7 +129,7 @@ by replacing the `delete_selected_files` function
 in filenav.p64. The easiest way to do this is with
 sedish in your startup script.
 
-```
+```lua
 sedish("/system/apps/filenav.p64/finfo.lua", {
 	{
 		[[function delete_selected_files()]],
@@ -160,7 +160,7 @@ You can setup a script to permanently delete files
 in trash after a certain amount of time (for
 example, 30 days).
 
-```
+```lua
 -- delete files older than 30 days ago
 local DeletionCutoff = date(nil, nil, -30*86400)
 for f in all(ls("/appdata/trash/files")) do
