@@ -305,6 +305,20 @@ function _init()
 
 			update_trash_dir()
 			exit(0)
+		elseif includes(flag_arguments, "--rm") then
+			if #file_arguments > 0 then
+				for f in all(file_arguments) do
+					local filename = fullpath(f)
+					if fstat(filename) then
+						print("deleting "..filename)
+						rm(filename)
+					end
+				end
+			else
+				print("usage: rm filename")
+			end
+
+			exit(0)
 		elseif includes(flag_arguments, "--tooltray") then
 			is_tooltray = true
 			is_cli = false
