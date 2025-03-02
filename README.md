@@ -124,34 +124,60 @@ Middle clicking the indicator will empty the trash.
 
 ## filenav.p64 Compatibility
 
-Picotron actually has a trash system builtin. When
-you delete a file from filenav.p64, it will be
-moved to `/ram/compost`.
+You can integrate Trash Manager into filenav.p64
+by replacing the `delete_selected_files` function
+in filenav.p64. The easiest way to do this is with
+sedish in your startup script.
 
-Since `/ram/compost` is in ram, files there won't
-be persistently saved. All trash will be
-permanently deleted when Picotron is restarted.
-filenav.p64 also doesn't save metadata such as the
-restore path or the deletion date.
-
-You can link `/ram/compost` to Trash Manager's
-trash location. This will make the trash
-persistent. However, there is still metadata
-missing.
-
-When metadata is missing, the restore path is
-assumed to be in "/", and the deletion date uses
-the file's modified time instead. Entries with
-missing metadata will be marked with an (!) after
-their restore path.
-
-If you would like to enable filenav.p64
-compatibility, place the following in
-`/appdata/system/startup.lua`:
-
-```lua
-mount("/ram/compost", "/appdata/trash/files")
 ```
+sedish("/system/apps/filenav.p64/finfo.lua", {
+	{
+		[[function delete_selected_files()]],
+		[[function delete_selected_files()
+	if fstat("/appdata/system/util/trash.p64") == "folder" then
+		local trash = {"--"}
+
+		for k,v in pairs(finfo) do
+			if (v.selected) then
+				local fullpath = fullpath(v.filename)
+				add(trash, fullpath)
+			end
+		end
+
+		create_process("/appdata/system/util/trash.p64", {argv=trash})
+		notify(string.format("moved %d items to trash", #trash - 1))
+		return
+	end]]
+	}
+})
+```
+
+Sedish can be found here: https://www.lexaloffle.com/bbs/?tid=140847
+
+## Automatically Deleting Files
+
+You can setup a script to permanently delete files
+in trash after a certain amount of time (for
+example, 30 days).
+
+```
+-- delete files older than 30 days ago
+local DeletionCutoff = date(nil, nil, -30*86400)
+for f in all(ls("/appdata/trash/files")) do
+	local trash_file = "/appdata/trash/files/" .. f
+	local info_file = "/appdata/trash/info/" .. f .. ".trashinfo"
+	local TrashInfo = fetch(info_file).TrashInfo
+	if TrashInfo.DeletionDate < DeletionCutoff then
+		printh("Permanently deleting " .. f)
+		rm(trash_file)
+		rm(info_file)
+	end
+end
+```
+
+If you include this in your startup script, older
+trash will automatically be cleared when starting
+Picotron.
 
 ## Technical Details
 
